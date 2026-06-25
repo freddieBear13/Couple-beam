@@ -12,9 +12,14 @@ import javax.inject.Singleton
 class SocketManager @Inject constructor() {
     private var socket: Socket? = null
     private var onDrawListener: ((List<DrawPoint>) -> Unit)? = null
+    private var onUndoListener: ((Int) -> Unit)? = null
 
     fun setOnDrawListener(listener: (List<DrawPoint>) -> Unit) {
         this.onDrawListener = listener
+    }
+
+    fun setOnUndoListener(listener: (Int) -> Unit) {
+        this.onUndoListener = listener
     }
 
     fun connect(roomId: String) {
@@ -41,9 +46,46 @@ class SocketManager @Inject constructor() {
                     val points = mutableListOf<DrawPoint>()
                     for (i in 0 until jsonArray.length()) {
                         val obj = jsonArray.getJSONObject(i)
-                        points.add(DrawPoint(obj.getDouble("x").toFloat(), obj.getDouble("y").toFloat()))
+
+                        val colorValue = obj.opt("color")
+                        val color = when (colorValue) {
+                            is Number -> colorValue.toInt()
+                            is String -> colorValue.toIntOrNull() ?: 0xFF000000.toInt()
+                            else -> {
+                                Log.w("SocketManager", "Unknown color type: ${colorValue?.javaClass}")
+                                0xFF000000.toInt()
+                            }
+                        }
+
+                        val widthValue = obj.opt("strokeWidth")
+                        val strokeWidth = when (widthValue) {
+                            is Number -> widthValue.toFloat()
+                            is String -> widthValue.toFloatOrNull() ?: 8f
+                            else -> {
+                                Log.w("SocketManager", "Unknown width type: ${widthValue?.javaClass}")
+                                8f
+                            }
+                        }
+
+                        Log.d("SocketManager", "Parsed point: color=$color, width=$strokeWidth")
+
+                        points.add(
+                            DrawPoint(
+                                x = obj.getDouble("x").toFloat(),
+                                y = obj.getDouble("y").toFloat(),
+                                color = color,
+                                strokeWidth = strokeWidth
+                            )
+                        )
                     }
                     onDrawListener?.invoke(points)
+                }
+            }
+
+            socket?.on("undo") { args ->
+                if (args.isNotEmpty()) {
+                    val index = args[0] as Int
+                    onUndoListener?.invoke(index)
                 }
             }
 
@@ -61,8 +103,10 @@ class SocketManager @Inject constructor() {
         val jsonArray = JSONArray()
         for (point in points) {
             val obj = JSONObject().apply {
-                put("x", point.x)
-                put("y", point.y)
+                put("x", point.x.toDouble())
+                put("y", point.y.toDouble())
+                put("color", point.color.toLong())
+                put("strokeWidth", point.strokeWidth.toDouble())
             }
             jsonArray.put(obj)
         }
@@ -73,6 +117,15 @@ class SocketManager @Inject constructor() {
         }
 
         socket?.emit("draw", payload)
+    }
+
+    fun emitUndo(roomId: String, strokeIndex: Int) {
+        if (socket?.connected() != true) return
+        val payload = JSONObject().apply {
+            put("roomId", roomId)
+            put("strokeIndex", strokeIndex)
+        }
+        socket?.emit("undo", payload)
     }
 
     fun disconnect() {

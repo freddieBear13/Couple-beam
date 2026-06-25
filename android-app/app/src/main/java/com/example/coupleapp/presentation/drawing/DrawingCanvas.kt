@@ -16,10 +16,15 @@ import com.example.coupleapp.data.remote.DrawPoint
 @Composable
 fun DrawingCanvas(
     onStrokeFinished: (List<DrawPoint>) -> Unit,
-    allStrokes: List<List<DrawPoint>>
+    allStrokes: List<List<DrawPoint>>,
+    currentColor: Int,
+    currentStrokeWidth: Float
 ) {
-    val currentPath = remember { Path() }
     val currentStroke = remember { mutableStateListOf<DrawPoint>() }
+    val currentPath = remember { Path() }
+
+    val latestColor by rememberUpdatedState(currentColor)
+    val latestWidth by rememberUpdatedState(currentStrokeWidth)
 
     Canvas(
         modifier = Modifier
@@ -29,13 +34,12 @@ fun DrawingCanvas(
                     onDragStart = { offset ->
                         currentPath.moveTo(offset.x, offset.y)
                         currentStroke.clear()
-                        currentStroke.add(DrawPoint(offset.x, offset.y))
+                        currentStroke.add(DrawPoint(offset.x, offset.y, latestColor, latestWidth))
                     },
                     onDrag = { change, _ ->
                         change.consume()
-                        val newPoint = DrawPoint(change.position.x, change.position.y)
                         currentPath.lineTo(change.position.x, change.position.y)
-                        currentStroke.add(newPoint)
+                        currentStroke.add(DrawPoint(change.position.x, change.position.y, latestColor, latestWidth))
                     },
                     onDragEnd = {
                         if (currentStroke.size > 1) {
@@ -60,16 +64,17 @@ fun DrawingCanvas(
                 }
                 drawPath(
                     path = path,
-                    color = Color.Black,
-                    style = Stroke(width = 8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    color = Color(stroke[0].color),
+                    style = Stroke(width = stroke[0].strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
             }
         }
+
         if (currentStroke.size > 1) {
             drawPath(
                 path = currentPath,
-                color = Color.Black,
-                style = Stroke(width = 8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                color = Color(latestColor),
+                style = Stroke(width = latestWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
         }
     }

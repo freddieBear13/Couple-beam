@@ -1,9 +1,15 @@
 package com.example.coupleapp.presentation.drawing
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
@@ -12,15 +18,30 @@ fun DrawingScreen(
     viewModel: DrawingViewModel = hiltViewModel()
 ) {
     val strokes by viewModel.strokes.collectAsState()
+    val color by viewModel.currentColor.collectAsState()
+    val width by viewModel.currentStrokeWidth.collectAsState()
 
     LaunchedEffect(roomId) {
         viewModel.init(roomId)
     }
 
-    DrawingCanvas(
-        onStrokeFinished = { stroke ->
-            viewModel.onStrokeFinished(stroke)
-        },
-        allStrokes = strokes
-    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        DrawingCanvas(
+            onStrokeFinished = viewModel::onStrokeFinished,
+            allStrokes = strokes,
+            currentColor = color,
+            currentStrokeWidth = width
+        )
+
+        DrawingToolbar(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp),
+            selectedColor = color,
+            onColorSelected = viewModel::updateColor,
+            strokeWidth = width,
+            onStrokeWidthChanged = viewModel::updateStrokeWidth,
+            onUndoClick = viewModel::undoLastStroke
+        )
+    }
 }
