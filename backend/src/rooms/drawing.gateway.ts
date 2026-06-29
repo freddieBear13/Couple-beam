@@ -39,4 +39,9 @@ export class DrawingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     handleUndo(client: Socket, payload: { roomId: string, strokeIndex: number }): void {
         this.server.to(payload.roomId).emit('undo', payload.strokeIndex);
     }
+
+    @SubscribeMessage('clear')
+    handleClear(client: Socket, roomId: string): void {
+        this.server.to(roomId).emit('clear');
+    }
 }

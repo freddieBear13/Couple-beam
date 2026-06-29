@@ -35,6 +35,9 @@ class DrawingViewModel @Inject constructor(
         socketManager.setOnUndoListener { index ->
             onRemoteUndo(index)
         }
+        socketManager.setOnClearListener {
+            onRemoteClear()
+        }
         socketManager.connect(roomId)
     }
 
@@ -85,6 +88,17 @@ class DrawingViewModel @Inject constructor(
                 currentStrokes
             }
         }
+    }
+
+    fun clearAll() {
+        _strokes.value = emptyList()
+        currentRoomId?.let { roomId ->
+            socketManager.emitClear(roomId)
+        }
+    }
+
+    fun onRemoteClear() {
+        _strokes.value = emptyList()
     }
 
     override fun onCleared() {

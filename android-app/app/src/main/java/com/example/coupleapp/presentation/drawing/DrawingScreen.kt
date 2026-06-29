@@ -3,6 +3,10 @@ package com.example.coupleapp.presentation.drawing
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,6 +36,18 @@ fun DrawingScreen(
             currentColor = color,
             currentStrokeWidth = width
         )
+
+        IconButton(
+            onClick = { viewModel.clearAll() },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 35.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete all"
+            )
+        }
 
         DrawingToolbar(
             modifier = Modifier

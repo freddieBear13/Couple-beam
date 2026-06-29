@@ -13,6 +13,7 @@ class SocketManager @Inject constructor() {
     private var socket: Socket? = null
     private var onDrawListener: ((List<DrawPoint>) -> Unit)? = null
     private var onUndoListener: ((Int) -> Unit)? = null
+    private var onClearListener: (() -> Unit)? = null
 
     fun setOnDrawListener(listener: (List<DrawPoint>) -> Unit) {
         this.onDrawListener = listener
@@ -20,6 +21,10 @@ class SocketManager @Inject constructor() {
 
     fun setOnUndoListener(listener: (Int) -> Unit) {
         this.onUndoListener = listener
+    }
+
+    fun setOnClearListener(listener: () -> Unit) {
+        this.onClearListener = listener
     }
 
     fun connect(roomId: String) {
@@ -32,7 +37,7 @@ class SocketManager @Inject constructor() {
         }
 
         try {
-            socket = IO.socket("http://10.0.2.2:3000", options)
+            socket = IO.socket("http://192.168.10.14:3000", options)
             socket?.connect()
 
             socket?.on(Socket.EVENT_CONNECT) {
@@ -89,6 +94,10 @@ class SocketManager @Inject constructor() {
                 }
             }
 
+            socket?.on("clear") {
+                onClearListener?.invoke()
+            }
+
             socket?.on(Socket.EVENT_DISCONNECT) {
                 Log.d("SocketManager", "Disconnected from server")
             }
@@ -126,6 +135,14 @@ class SocketManager @Inject constructor() {
             put("strokeIndex", strokeIndex)
         }
         socket?.emit("undo", payload)
+    }
+
+    fun emitClear(roomId: String) {
+        if (socket?.connected() != true) return
+        val payload = JSONObject().apply {
+            put("roomId", roomId)
+        }
+        socket?.emit("clear", payload)
     }
 
     fun disconnect() {

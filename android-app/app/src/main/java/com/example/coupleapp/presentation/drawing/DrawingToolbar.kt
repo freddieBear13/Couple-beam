@@ -104,7 +104,7 @@ fun DrawingToolbar(
                     onClick = onUndoClick,
                     modifier = Modifier.height(40.dp)
                 ) {
-                    Text("Undo")
+                    Text("U")
                 }
             }
 
