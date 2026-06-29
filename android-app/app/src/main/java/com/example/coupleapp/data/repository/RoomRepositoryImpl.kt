@@ -1,5 +1,6 @@
 package com.example.coupleapp.data.repository
 
+import com.example.coupleapp.data.remote.ActiveRoomResponse
 import com.example.coupleapp.data.remote.ApiService
 import com.example.coupleapp.data.remote.CreateRoomRequest
 import com.example.coupleapp.data.remote.JoinRoomRequest
@@ -32,6 +33,15 @@ class RoomRepositoryImpl @Inject constructor(
                 val errorMessage = response.errorBody()?.string() ?: "Joining room error"
                 Result.failure(Exception(errorMessage))
             }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getActiveRoom(userId: String): Result<ActiveRoomResponse> {
+        return try {
+            val response = apiService.getActiveRoom(userId)
+            Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
         }

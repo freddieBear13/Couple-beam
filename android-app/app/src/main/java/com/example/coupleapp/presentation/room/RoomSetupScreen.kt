@@ -20,9 +20,19 @@ fun RoomSetupScreen(
     val state by viewModel.uiState.collectAsState()
     var inputCode by remember { mutableStateOf("") }
 
-    LaunchedEffect(state.isJoined, state.roomId) {
+    LaunchedEffect(userId) {
+        viewModel.checkActiveRoom(userId)
+    }
+
+    LaunchedEffect(state.hasActiveRoom, state.roomId) {
+        if (state.hasActiveRoom && state.roomId != null) {
+            onNavigateToDrawing(state.roomId!!)
+        }
+    }
+
+    LaunchedEffect(state.isJoined, state.roomId, state.hasActiveRoom) {
         val currentRoomId = state.roomId
-        if (state.isJoined && currentRoomId != null) {
+        if (state.isJoined && currentRoomId != null && !state.hasActiveRoom) {
             onNavigateToDrawing(currentRoomId)
         }
     }
@@ -41,8 +51,13 @@ fun RoomSetupScreen(
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        if (state.isLoading) {
+        if (state.isLoading && state.generatedCode == null && !state.hasActiveRoom) {
             CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+            Text(
+                text = "Checking for active room...",
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         } else if (state.generatedCode != null) {
             Text(
                 text = "Your code:",
@@ -62,55 +77,53 @@ fun RoomSetupScreen(
             ) {
                 Text("Partner is connected, start drawing")
             }
-        }
-
-        if (state.errorMessage != null) {
-            Text(
-                text = state.errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-
-        if (state.generatedCode == null) {
-            Button(
-                onClick = { viewModel.createRoom(userId) },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
-            ) {
-                Text("Create new room")
+        } else {
+            if (state.errorMessage != null) {
+                Text(
+                    text = state.errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
             }
-        }
 
-        Divider(modifier = Modifier.padding(vertical = 16.dp).fillMaxWidth())
-
-        Text(
-            text = "Or enter partner code",
-            fontSize = 14.sp,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        OutlinedTextField(
-            value = inputCode,
-            onValueChange = { inputCode = it.uppercase() },
-            label = { Text("Parnter code") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                if (inputCode != state.generatedCode) {
-                    viewModel.joinRoom(inputCode, userId)
-                } else {
-                    viewModel.setError("Can't input your own code")
+            if (state.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+            } else {
+                Button(
+                    onClick = { viewModel.createRoom(userId) },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+                ) {
+                    Text("Create new room")
                 }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isLoading && inputCode.length == 6
-        ) {
-            Text("Join room")
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 16.dp).fillMaxWidth())
+
+            Text(
+                text = "Or enter partner code",
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            OutlinedTextField(
+                value = inputCode,
+                onValueChange = { inputCode = it.uppercase() },
+                label = { Text("Parnter code") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    viewModel.joinRoom(inputCode, userId)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isLoading && inputCode.length == 6
+            ) {
+                Text("Join room")
+            }
         }
     }
 }

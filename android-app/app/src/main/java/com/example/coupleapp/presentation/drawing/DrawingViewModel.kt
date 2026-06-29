@@ -2,18 +2,22 @@ package com.example.coupleapp.presentation.drawing
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.coupleapp.data.remote.DrawPoint
 import com.example.coupleapp.data.remote.SocketManager
+import com.example.coupleapp.domain.StrokeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class DrawingViewModel @Inject constructor(
-    private val socketManager: SocketManager
+    private val socketManager: SocketManager,
+    private val repository: StrokeRepository
 ) : ViewModel() {
 
     private val _strokes = MutableStateFlow<List<List<DrawPoint>>>(emptyList())
@@ -29,6 +33,19 @@ class DrawingViewModel @Inject constructor(
 
     fun init(roomId: String) {
         currentRoomId = roomId
+
+        viewModelScope.launch {
+            repository.loadHistory(roomId).fold(
+                onSuccess = { history ->
+                    _strokes.value = history
+                    Log.d("DrawingViewModel", "Loaded ${history.size} strokes from history")
+                },
+                onFailure = { exception ->
+                    Log.e("DrawingViewModel", "Failed to load history", exception)
+                }
+            )
+        }
+
         socketManager.setOnDrawListener { remoteStroke ->
             onRemoteStroke(remoteStroke)
         }
@@ -43,13 +60,21 @@ class DrawingViewModel @Inject constructor(
 
     fun onStrokeFinished(stroke: List<DrawPoint>) {
         _strokes.update { currentStrokes ->
-            if (stroke.isNotEmpty()) {
-                Log.d("DrawingViewModel", "Added stroke: color=${stroke[0].color}, width=${stroke[0].strokeWidth}")
-            }
             currentStrokes.toMutableList().apply { add(stroke) }
         }
         currentRoomId?.let { roomId ->
             socketManager.emitDraw(roomId, stroke)
+
+            viewModelScope.launch {
+                repository.saveStroke(roomId, stroke).fold(
+                    onSuccess = {
+                        Log.d("DrawingViewModel", "Stroke saved to the server")
+                    },
+                    onFailure = { exception ->
+                        Log.e("DrawingViewModel", "Failed to save stroke", exception)
+                    }
+                )
+            }
         }
     }
 
@@ -57,14 +82,6 @@ class DrawingViewModel @Inject constructor(
         _strokes.update { currentStrokes ->
             currentStrokes.toMutableList().apply { add(stroke) }
         }
-    }
-
-    fun updateColor(color: Int) {
-        _currentColor.value = color
-    }
-
-    fun updateStrokeWidth(width: Float) {
-        _currentStrokeWidth.value = width
     }
 
     fun undoLastStroke() {
@@ -99,6 +116,14 @@ class DrawingViewModel @Inject constructor(
 
     fun onRemoteClear() {
         _strokes.value = emptyList()
+    }
+
+    fun updateColor(color: Int) {
+        _currentColor.value = color
+    }
+
+    fun updateStrokeWidth(width: Float) {
+        _currentStrokeWidth.value = width
     }
 
     override fun onCleared() {

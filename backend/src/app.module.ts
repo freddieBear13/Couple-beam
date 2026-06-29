@@ -16,6 +16,7 @@ import { RoomsModule } from './rooms/rooms.module';
       password: 'postgres',
       database: 'coupleapp',
       entities: [User, Room],
+      autoLoadEntities: true,
       synchronize: true,
     }),
     RoomsModule,

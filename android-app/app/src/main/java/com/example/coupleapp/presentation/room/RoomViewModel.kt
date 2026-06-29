@@ -17,7 +17,9 @@ data class RoomState(
     val generatedCode: String? = null,
     val isJoined: Boolean = false,
     val roomId: String? = null,
-    val isPartnerJoined: Boolean = false
+    val isPartnerJoined: Boolean = false,
+    val hasActiveRoom: Boolean = false,
+    val activeRoomCode: String? = null
 )
 
 @HiltViewModel
@@ -53,6 +55,34 @@ class RoomViewModel @Inject constructor(
             repository.joinRoom(inviteCode, userId).fold(
                 onSuccess = {
                     _uiState.update { it.copy(isLoading = false, isJoined = true, roomId = inviteCode) }
+                },
+                onFailure = { exception ->
+                    _uiState.update {
+                        it.copy(isLoading = false, errorMessage = exception.message ?: "Network error")
+                    }
+                }
+            )
+        }
+    }
+
+    fun checkActiveRoom(userId: String) {
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        viewModelScope.launch {
+            repository.getActiveRoom(userId).fold(
+                onSuccess = { response ->
+                    if (response.hasRoom && response.code != null) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                hasActiveRoom = true,
+                                activeRoomCode = response.code,
+                                roomId = response.code,
+                                isJoined = true
+                            )
+                        }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false) }
+                    }
                 },
                 onFailure = { exception ->
                     _uiState.update {

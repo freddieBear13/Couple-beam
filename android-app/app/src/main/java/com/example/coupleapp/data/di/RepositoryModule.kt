@@ -2,8 +2,10 @@ package com.example.coupleapp.data.di
 
 import com.example.coupleapp.data.repository.AuthRepositoryImpl
 import com.example.coupleapp.data.repository.RoomRepositoryImpl
+import com.example.coupleapp.data.repository.StrokeRepositoryImpl
 import com.example.coupleapp.domain.AuthRepository
 import com.example.coupleapp.domain.RoomRepository
+import com.example.coupleapp.domain.StrokeRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -25,4 +27,10 @@ abstract class RepositoryModule {
     abstract fun bindRoomRepository(
         impl: RoomRepositoryImpl
     ) : RoomRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStrokeRepository(
+        impl: StrokeRepositoryImpl
+    ): StrokeRepository
 }
