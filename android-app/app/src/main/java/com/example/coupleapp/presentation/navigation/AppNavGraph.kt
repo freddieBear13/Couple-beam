@@ -106,8 +106,15 @@ fun AppNavGraph(navController: NavHostController) {
             route = "${Screen.DRAWING}/{roomId}",
             arguments = listOf(navArgument("roomId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
-            DrawingScreen(roomId = roomId)
+            val roomId = backStackEntry.arguments?.getString("roomId") ?: return@composable
+            DrawingScreen(
+                roomId = roomId,
+                onNavigateBack = {
+                    navController.navigate(Screen.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

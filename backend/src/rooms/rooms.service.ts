@@ -32,7 +32,7 @@ export class RoomsService {
             throw new NotFoundException('Room not found');
         }
         
-        if (room.partnerId) {
+        if (room.partnerId) {   
             throw new ConflictException('Room is already full');
         }
 
@@ -74,6 +74,35 @@ export class RoomsService {
             where: { room: { id: room.id } },
             order: { id: 'ASC' },
         })
+    }
+
+    async deleteLastStroke(roomId: string): Promise<void> {
+        const room = await this.roomRepository.findOne({
+            where: { inviteCode: roomId.toUpperCase() },
+        });
+        if (!room) {
+            throw new NotFoundException('Room not found');
+        }
+
+        const lastStroke = await this.strokeRepository.findOne({
+            where: {room: { id: room.id } },
+            order: {id: 'DESC'},
+        })
+
+        if (lastStroke) {
+            await this.strokeRepository.remove(lastStroke);
+        }
+    }
+
+    async deleteAllStrokes(roomId: string): Promise<void> {
+        const room = await this.roomRepository.findOne({
+            where: {inviteCode: roomId.toUpperCase() },
+        });
+        if (!room) {
+            throw new NotFoundException('Room not found');
+        }
+
+        await this.strokeRepository.delete({room: {id: room.id}});
     }
 
     private generateRoomCode(): string {

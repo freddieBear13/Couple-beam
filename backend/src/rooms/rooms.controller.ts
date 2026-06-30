@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, Param, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, Param, Get, Query, Delete } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { SaveStrokeDTO } from './save-stroke.dto';
 
@@ -44,5 +44,17 @@ export class RoomsController {
   @Get(':roomId/strokes')
   async getStrokes(@Param('roomId') roomId: string) {
     return this.roomsService.getStrokes(roomId);
+  }
+
+  @Delete(':roomId/strokes/last')
+  async deleteLastStroke(@Param('roomId') roomId: string) {
+    await this.roomsService.deleteLastStroke(roomId);
+    return { success: true };
+  }
+
+  @Delete(':roomId/strokes')
+  async deleteAllStrokes(@Param('roomId') roomId: string) {
+    await this.roomsService.deleteAllStrokes(roomId);
+    return { success: true };
   }
 }

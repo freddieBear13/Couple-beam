@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
@@ -19,6 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun DrawingScreen(
     roomId: String,
+    onNavigateBack: () -> Unit,
     viewModel: DrawingViewModel = hiltViewModel()
 ) {
     val strokes by viewModel.strokes.collectAsState()
@@ -36,6 +38,21 @@ fun DrawingScreen(
             currentColor = color,
             currentStrokeWidth = width
         )
+
+        IconButton(
+            onClick = {
+                viewModel.exitRoom()
+                onNavigateBack()
+            },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 35.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Back"
+            )
+        }
 
         IconButton(
             onClick = { viewModel.clearAll() },

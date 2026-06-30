@@ -2,6 +2,7 @@ package com.example.coupleapp.data.remote
 
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -33,6 +34,12 @@ interface ApiService {
     suspend fun getStrokes(
         @Path("roomId") roomId: String
     ): List<StrokeResponse>
+
+    @DELETE("rooms/{roomId}/strokes/last")
+    suspend fun deleteLastStroke(@Path("roomId") roomId: String)
+
+    @DELETE("rooms/{roomId}/strokes")
+    suspend fun deleteAllStrokes(@Path("roomId") roomId: String)
 }
 
 data class StrokeSaveResponse(

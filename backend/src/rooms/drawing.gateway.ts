@@ -3,7 +3,9 @@ import {
     OnGatewayConnection,
     OnGatewayDisconnect, 
     WebSocketServer,
-    SubscribeMessage
+    SubscribeMessage,
+    ConnectedSocket,
+    MessageBody
 
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
@@ -25,23 +27,35 @@ export class DrawingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     }
 
     @SubscribeMessage('joinRoom')
-    handleJoinRoom(client: Socket, roomId: string): void {
+    handleJoinRoom(
+        @ConnectedSocket() client: Socket, 
+        @MessageBody() roomId: string
+    ): void {
         client.join(roomId);
         this.logger.log(`Client ${client.id} joined room: ${roomId}`);
     }
 
     @SubscribeMessage('draw')
-    handleDraw(client: Socket, payload: { roomId: string, points: any[] }): void {
-        this.server.to(payload.roomId).emit('draw', payload.points);
+    handleDraw(
+        @ConnectedSocket() client: Socket, 
+        @MessageBody() payload: { roomId: string, points: any[] }
+    ): void {
+        client.broadcast.to(payload.roomId).emit('draw', payload.points);
     }
 
     @SubscribeMessage('undo')
-    handleUndo(client: Socket, payload: { roomId: string, strokeIndex: number }): void {
-        this.server.to(payload.roomId).emit('undo', payload.strokeIndex);
+    handleUndo(
+        @ConnectedSocket() client: Socket, 
+        @MessageBody() payload: { roomId: string }
+    ): void {
+        client.broadcast.to(payload.roomId).emit('undo');
     }
 
     @SubscribeMessage('clear')
-    handleClear(client: Socket, roomId: string): void {
-        this.server.to(roomId).emit('clear');
+    handleClear(
+        @ConnectedSocket() client: Socket, 
+        @MessageBody() roomId: string
+    ): void {
+        client.broadcast.to(roomId).emit('clear');
     }
 }

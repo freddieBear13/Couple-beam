@@ -10,16 +10,19 @@ import javax.inject.Singleton
 
 @Singleton
 class SocketManager @Inject constructor() {
+    companion object {
+        private const val TAG = "SocketManager"
+    }
     private var socket: Socket? = null
     private var onDrawListener: ((List<DrawPoint>) -> Unit)? = null
-    private var onUndoListener: ((Int) -> Unit)? = null
+    private var onUndoListener: (() -> Unit)? = null
     private var onClearListener: (() -> Unit)? = null
 
     fun setOnDrawListener(listener: (List<DrawPoint>) -> Unit) {
         this.onDrawListener = listener
     }
 
-    fun setOnUndoListener(listener: (Int) -> Unit) {
+    fun setOnUndoListener(listener: () -> Unit) {
         this.onUndoListener = listener
     }
 
@@ -29,6 +32,7 @@ class SocketManager @Inject constructor() {
 
     fun connect(roomId: String) {
         if (socket?.connected() == true) return
+        Log.d(TAG, "connect() roomId=$roomId")
 
         val options = IO.Options().apply {
             reconnection = true
@@ -37,17 +41,19 @@ class SocketManager @Inject constructor() {
         }
 
         try {
-            socket = IO.socket("http://192.168.10.14:3000", options)
+            socket = IO.socket("http://192.168.10.9:3000", options)
             socket?.connect()
 
             socket?.on(Socket.EVENT_CONNECT) {
-                Log.d("SocketManager", "Connected to server")
+                Log.d(TAG, "EVENT_CONNECT")
                 socket?.emit("joinRoom", roomId)
             }
 
             socket?.on("draw") { args ->
+                Log.d(TAG, "EVENT draw received, args.size=${args.size}")
                 if (args.isNotEmpty()) {
                     val jsonArray = args[0] as JSONArray
+                    Log.d(TAG, "draw payload length=${jsonArray.length()}")
                     val points = mutableListOf<DrawPoint>()
                     for (i in 0 until jsonArray.length()) {
                         val obj = jsonArray.getJSONObject(i)
@@ -83,31 +89,35 @@ class SocketManager @Inject constructor() {
                             )
                         )
                     }
+                    Log.d(TAG, "Parsed ${points.size} points, invoking listener")
                     onDrawListener?.invoke(points)
                 }
             }
 
             socket?.on("undo") { args ->
-                if (args.isNotEmpty()) {
-                    val index = args[0] as Int
-                    onUndoListener?.invoke(index)
-                }
+                Log.d(TAG, "EVENT undo received, args.size=${args.size}")
+                onUndoListener?.invoke()
             }
 
-            socket?.on("clear") {
+            socket?.on("clear") {args ->
+                Log.d(TAG, "EVENT clear received, args.size=${args.size}")
                 onClearListener?.invoke()
             }
 
             socket?.on(Socket.EVENT_DISCONNECT) {
-                Log.d("SocketManager", "Disconnected from server")
+                Log.d(TAG, "EVENT_DISCONNECT")
             }
         } catch (e: Exception) {
-            Log.e("SocketManager", "Socket connection error", e)
+            Log.e(TAG, "Socket connection error", e)
         }
     }
 
     fun emitDraw(roomId: String, points: List<DrawPoint>) {
-        if (socket?.connected() != true) return
+        Log.d(TAG, "emitDraw() roomId=$roomId, points=${points.size}")
+        if (socket?.connected() != true) {
+            Log.w(TAG, "emitDraw() skipped - socket not connected")
+            return
+        }
 
         val jsonArray = JSONArray()
         for (point in points) {
@@ -126,26 +136,37 @@ class SocketManager @Inject constructor() {
         }
 
         socket?.emit("draw", payload)
+        Log.d(TAG, "emitDraw() sent successfully")
     }
 
-    fun emitUndo(roomId: String, strokeIndex: Int) {
-        if (socket?.connected() != true) return
+    fun emitUndo(roomId: String) {
+        Log.d(TAG, "emitUndo() roomId=$roomId")
+        if (socket?.connected() != true) {
+            Log.w(TAG, "emitUndo() skipped - socket not connected")
+            return
+        }
         val payload = JSONObject().apply {
             put("roomId", roomId)
-            put("strokeIndex", strokeIndex)
         }
         socket?.emit("undo", payload)
+        Log.d(TAG, "emitUndo() sent successfully")
     }
 
     fun emitClear(roomId: String) {
-        if (socket?.connected() != true) return
+        Log.d(TAG, "emitClear() roomId=$roomId")
+        if (socket?.connected() != true) {
+            Log.w(TAG, "emitClear() skipped - socket not connected")
+            return
+        }
         val payload = JSONObject().apply {
             put("roomId", roomId)
         }
         socket?.emit("clear", payload)
+        Log.d(TAG, "emitClear() sent successfully")
     }
 
     fun disconnect() {
+        Log.d(TAG, "disconnect()")
         socket?.disconnect()
         socket = null
     }

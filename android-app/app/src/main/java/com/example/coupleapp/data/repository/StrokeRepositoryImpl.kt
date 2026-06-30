@@ -59,4 +59,22 @@ class StrokeRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun deleteLastStroke(roomId: String): Result<Unit> {
+        return try {
+            apiService.deleteLastStroke(roomId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteAllStrokes(roomId: String): Result<Unit> {
+        return try {
+            apiService.deleteAllStrokes(roomId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
