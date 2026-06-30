@@ -36,17 +36,15 @@ class DrawingViewModel @Inject constructor(
     private val _isLoadingHistory = MutableStateFlow(false)
     val isLoadingHistory: StateFlow<Boolean> = _isLoadingHistory.asStateFlow()
 
+    val isOnline: StateFlow<Boolean> = socketManager.isOnline
+
     private var currentRoomId: String? = null
     private var isInitialized = false
 
     fun init(roomId: String) {
-        if (isInitialized) {
-            Log.d(TAG, "init() skipped, already initialized for roomId=$currentRoomId")
-            return
-        }
+        if (isInitialized) return
         isInitialized = true
         currentRoomId = roomId
-        Log.d(TAG, "init() roomId=$roomId")
 
         _isLoadingHistory.value = true
 
@@ -54,7 +52,6 @@ class DrawingViewModel @Inject constructor(
             repository.loadHistory(roomId).fold(
                 onSuccess = { history ->
                     _strokes.value = history
-                    Log.d(TAG, "History loaded: ${history.size} strokes")
                 },
                 onFailure = { exception ->
                     Log.e(TAG, "Failed to load history", exception)

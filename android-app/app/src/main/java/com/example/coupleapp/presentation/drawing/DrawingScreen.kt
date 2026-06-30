@@ -28,6 +28,8 @@ fun DrawingScreen(
     val strokes by viewModel.strokes.collectAsState()
     val color by viewModel.currentColor.collectAsState()
     val width by viewModel.currentStrokeWidth.collectAsState()
+    val isLoadingHistory by viewModel.isLoadingHistory.collectAsState()
+    val isOnline by viewModel.isOnline.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.init(roomId)
@@ -43,7 +45,8 @@ fun DrawingScreen(
             onStrokeFinished = viewModel::onStrokeFinished,
             allStrokes = strokes,
             currentColor = color,
-            currentStrokeWidth = width
+            currentStrokeWidth = width,
+            isLoadingHistory = isLoadingHistory
         )
 
         IconButton(
@@ -81,7 +84,8 @@ fun DrawingScreen(
             onColorSelected = viewModel::updateColor,
             strokeWidth = width,
             onStrokeWidthChanged = viewModel::updateStrokeWidth,
-            onUndoClick = viewModel::undoLastStroke
+            onUndoClick = viewModel::undoLastStroke,
+            isOnline = isOnline
         )
     }
 }

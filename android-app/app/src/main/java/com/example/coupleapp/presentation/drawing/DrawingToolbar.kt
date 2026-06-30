@@ -27,7 +27,8 @@ fun DrawingToolbar(
     onColorSelected: (Int) -> Unit,
     strokeWidth: Float,
     onStrokeWidthChanged: (Float) -> Unit,
-    onUndoClick: () -> Unit
+    onUndoClick: () -> Unit,
+    isOnline: Boolean
 ) {
     val presetColors = listOf(
         0xFF000000.toInt(),
@@ -78,7 +79,6 @@ fun DrawingToolbar(
                         )
                     }
 
-                    // RGB кружок: показывает кастомный цвет или радужный градиент
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -100,11 +100,23 @@ fun DrawingToolbar(
                     }
                 }
 
-                Button(
-                    onClick = onUndoClick,
-                    modifier = Modifier.height(40.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("U")
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(if (isOnline) Color(0xFF4CAF50) else Color(0xFFF44336))
+                    )
+
+                    Button(
+                        onClick = onUndoClick,
+                        modifier = Modifier.height(40.dp)
+                    ) {
+                        Text("U")
+                    }
                 }
             }
 

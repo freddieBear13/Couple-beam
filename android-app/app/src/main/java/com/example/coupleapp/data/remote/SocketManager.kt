@@ -1,12 +1,22 @@
 package com.example.coupleapp.data.remote
 
 import android.util.Log
+import androidx.compose.runtime.currentRecomposeScope
 import io.socket.client.IO
 import io.socket.client.Socket
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
+
+sealed class QueuedEvent {
+    data class Draw(val roomId: String, val points: List<DrawPoint>) : QueuedEvent()
+    data object Undo : QueuedEvent()
+    data object Clear : QueuedEvent()
+}
 
 @Singleton
 class SocketManager @Inject constructor() {
@@ -15,6 +25,13 @@ class SocketManager @Inject constructor() {
     }
     private var socket: Socket? = null
     private var isDisconnected = false
+    private var currentRoomId : String? = null
+
+    private val eventQueue = mutableListOf<QueuedEvent>()
+
+    private val _isOnline = MutableStateFlow(false)
+    val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
+
     private var onDrawListener: ((List<DrawPoint>) -> Unit)? = null
     private var onUndoListener: (() -> Unit)? = null
     private var onClearListener: (() -> Unit)? = null
@@ -34,12 +51,14 @@ class SocketManager @Inject constructor() {
     fun connect(roomId: String) {
         if (socket?.connected() == true) return
         isDisconnected = false
+        currentRoomId = roomId
         Log.d(TAG, "connect() roomId=$roomId")
 
         val options = IO.Options().apply {
             reconnection = true
-            reconnectionAttempts = 5
+            reconnectionAttempts = Int.MAX_VALUE
             reconnectionDelay = 1000
+            reconnectionDelayMax = 5000
         }
 
         try {
@@ -48,7 +67,9 @@ class SocketManager @Inject constructor() {
 
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d(TAG, "EVENT_CONNECT")
+                _isOnline.value = true
                 socket?.emit("joinRoom", roomId)
+                flushQueue()
             }
 
             socket?.on("draw") { args ->
@@ -108,9 +129,31 @@ class SocketManager @Inject constructor() {
 
             socket?.on(Socket.EVENT_DISCONNECT) {
                 Log.d(TAG, "EVENT_DISCONNECT")
+                _isOnline.value = false
+            }
+
+            socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
+                Log.w(TAG, "EVENT_CONNECT_ERROR: ${args.firstOrNull()}")
+                _isOnline.value = false
             }
         } catch (e: Exception) {
             Log.e(TAG, "Socket connection error", e)
+        }
+    }
+
+    private fun flushQueue() {
+        if (eventQueue.isEmpty()) return
+        Log.d(TAG, "flushQueue() sending ${eventQueue.size} queued events")
+
+        val eventsToSend = eventQueue.toList()
+        eventQueue.clear()
+
+        for (event in eventsToSend) {
+            when (event) {
+                is QueuedEvent.Draw -> sendDrawInterval(event.roomId, event.points)
+                is QueuedEvent.Undo -> sendUndoInterval()
+                is QueuedEvent.Clear -> sendClearInterval()
+            }
         }
     }
 
@@ -118,9 +161,13 @@ class SocketManager @Inject constructor() {
         Log.d(TAG, "emitDraw() roomId=$roomId, points=${points.size}")
         if (socket?.connected() != true) {
             Log.w(TAG, "emitDraw() skipped - socket not connected")
+            eventQueue.add(QueuedEvent.Draw(roomId, points))
             return
         }
+        sendDrawInterval(roomId, points)
+    }
 
+    private fun sendDrawInterval(roomId: String, points: List<DrawPoint>) {
         val jsonArray = JSONArray()
         for (point in points) {
             val obj = JSONObject().apply {
@@ -145,8 +192,14 @@ class SocketManager @Inject constructor() {
         Log.d(TAG, "emitUndo() roomId=$roomId")
         if (socket?.connected() != true) {
             Log.w(TAG, "emitUndo() skipped - socket not connected")
+            eventQueue.add(QueuedEvent.Undo)
             return
         }
+        sendUndoInterval()
+    }
+
+    private fun sendUndoInterval() {
+        val roomId = currentRoomId ?: return
         val payload = JSONObject().apply {
             put("roomId", roomId)
         }
@@ -158,8 +211,14 @@ class SocketManager @Inject constructor() {
         Log.d(TAG, "emitClear() roomId=$roomId")
         if (socket?.connected() != true) {
             Log.w(TAG, "emitClear() skipped - socket not connected")
+            eventQueue.add(QueuedEvent.Clear)
             return
         }
+        sendClearInterval()
+    }
+
+    private fun sendClearInterval() {
+        val roomId = currentRoomId
         val payload = JSONObject().apply {
             put("roomId", roomId)
         }
@@ -174,6 +233,8 @@ class SocketManager @Inject constructor() {
         }
         isDisconnected = true
         Log.d(TAG, "disconnect()")
+        _isOnline.value = false
+        eventQueue.clear()
         socket?.disconnect()
         socket = null
     }
