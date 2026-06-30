@@ -3,6 +3,7 @@ package com.example.coupleapp.presentation.room
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,21 +20,18 @@ fun RoomSetupScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var inputCode by remember { mutableStateOf("") }
+    var hasNavigated by rememberSaveable() { mutableStateOf(false) }
 
     LaunchedEffect(userId) {
         viewModel.checkActiveRoom(userId)
     }
 
-    LaunchedEffect(state.hasActiveRoom, state.roomId) {
-        if (state.hasActiveRoom && state.roomId != null) {
-            onNavigateToDrawing(state.roomId!!)
-        }
-    }
-
-    LaunchedEffect(state.isJoined, state.roomId, state.hasActiveRoom) {
+    LaunchedEffect(state.hasActiveRoom, state.roomId, state.isJoined) {
         val currentRoomId = state.roomId
-        if (state.isJoined && currentRoomId != null && !state.hasActiveRoom) {
-            onNavigateToDrawing(currentRoomId)
+        val shouldNavigate = (state.hasActiveRoom || state.isJoined) && currentRoomId != null
+        if (shouldNavigate && !hasNavigated) {
+            hasNavigated = true
+            onNavigateToDrawing(currentRoomId!!)
         }
     }
 

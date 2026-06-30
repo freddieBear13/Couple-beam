@@ -14,6 +14,7 @@ class SocketManager @Inject constructor() {
         private const val TAG = "SocketManager"
     }
     private var socket: Socket? = null
+    private var isDisconnected = false
     private var onDrawListener: ((List<DrawPoint>) -> Unit)? = null
     private var onUndoListener: (() -> Unit)? = null
     private var onClearListener: (() -> Unit)? = null
@@ -32,6 +33,7 @@ class SocketManager @Inject constructor() {
 
     fun connect(roomId: String) {
         if (socket?.connected() == true) return
+        isDisconnected = false
         Log.d(TAG, "connect() roomId=$roomId")
 
         val options = IO.Options().apply {
@@ -166,6 +168,11 @@ class SocketManager @Inject constructor() {
     }
 
     fun disconnect() {
+        if (isDisconnected) {
+            Log.d(TAG, "disconnect() skipped - already disconnected")
+            return
+        }
+        isDisconnected = true
         Log.d(TAG, "disconnect()")
         socket?.disconnect()
         socket = null

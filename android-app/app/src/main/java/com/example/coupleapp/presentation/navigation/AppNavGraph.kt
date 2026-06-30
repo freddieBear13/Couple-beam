@@ -14,6 +14,7 @@ import com.example.coupleapp.presentation.auth.AuthViewModel
 import com.example.coupleapp.presentation.auth.LoginScreen
 import com.example.coupleapp.presentation.auth.RegisterScreen
 import com.example.coupleapp.presentation.drawing.DrawingScreen
+import com.example.coupleapp.presentation.drawing.DrawingViewModel
 import com.example.coupleapp.presentation.room.RoomSetupScreen
 import com.example.coupleapp.presentation.room.RoomViewModel
 import com.example.coupleapp.presentation.main.MainScreen
@@ -81,15 +82,6 @@ fun AppNavGraph(navController: NavHostController) {
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             val viewModel: RoomViewModel = hiltViewModel()
-            val state by viewModel.uiState.collectAsState()
-
-            LaunchedEffect(state.isJoined, state.roomId) {
-                if (state.isJoined && state.roomId != null) {
-                    navController.navigate("${Screen.DRAWING}/${state.roomId}") {
-                        popUpTo(Screen.ROOM_SETUP) { inclusive = true }
-                    }
-                }
-            }
 
             RoomSetupScreen(
                 viewModel = viewModel,
@@ -97,6 +89,7 @@ fun AppNavGraph(navController: NavHostController) {
                 onNavigateToDrawing = { roomId ->
                     navController.navigate("${Screen.DRAWING}/$roomId") {
                         popUpTo(Screen.ROOM_SETUP) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -107,13 +100,18 @@ fun AppNavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("roomId") { type = NavType.StringType })
         ) { backStackEntry ->
             val roomId = backStackEntry.arguments?.getString("roomId") ?: return@composable
+
+            val viewModel: DrawingViewModel = hiltViewModel(backStackEntry)
+
             DrawingScreen(
                 roomId = roomId,
                 onNavigateBack = {
+                    viewModel.exitRoom()
                     navController.navigate(Screen.LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
-                }
+                },
+                viewModel = viewModel,
             )
         }
     }

@@ -93,6 +93,18 @@ class RoomViewModel @Inject constructor(
         }
     }
 
+    fun clearActiveRoom() {
+        _uiState.update {
+            it.copy(
+                hasActiveRoom = false,
+                activeRoomCode = null,
+                roomId = null,
+                isJoined = true,
+                generatedCode = null
+            )
+        }
+    }
+
     fun setError(message: String) {
         _uiState.update { it.copy(errorMessage = message) }
     }

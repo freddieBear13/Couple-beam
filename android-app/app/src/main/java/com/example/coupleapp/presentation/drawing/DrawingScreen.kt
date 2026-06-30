@@ -1,5 +1,6 @@
 package com.example.coupleapp.presentation.drawing
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.coupleapp.presentation.room.RoomViewModel
 
 @Composable
 fun DrawingScreen(
@@ -27,8 +29,13 @@ fun DrawingScreen(
     val color by viewModel.currentColor.collectAsState()
     val width by viewModel.currentStrokeWidth.collectAsState()
 
-    LaunchedEffect(roomId) {
+    LaunchedEffect(Unit) {
         viewModel.init(roomId)
+    }
+
+    BackHandler {
+        viewModel.exitRoom()
+        onNavigateBack()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
