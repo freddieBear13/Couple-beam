@@ -225,7 +225,7 @@ class SocketManager @Inject constructor() {
         socket?.emit("clear", payload)
         Log.d(TAG, "emitClear() sent successfully")
     }
-
+    
     fun disconnect() {
         if (isDisconnected) {
             Log.d(TAG, "disconnect() skipped - already disconnected")

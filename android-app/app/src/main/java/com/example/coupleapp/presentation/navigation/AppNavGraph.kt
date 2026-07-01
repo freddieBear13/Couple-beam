@@ -1,5 +1,6 @@
 package com.example.coupleapp.presentation.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,9 +38,17 @@ fun AppNavGraph(navController: NavHostController) {
             val state by viewModel.uiState.collectAsState()
 
             LaunchedEffect(state.isSuccess, state.userId) {
+                Log.d("NavGraph_Debug", "State changed: isSuccess=${state.isSuccess}, userId=${state.userId}")
+
                 if (state.isSuccess && state.userId != null) {
-                    navController.navigate("${Screen.ROOM_SETUP}/${state.userId}") {
-                        popUpTo(Screen.LOGIN) { inclusive = true }
+                    Log.d("NavGraph_Debug", "Navigating to ROOM_SETUP")
+                    try {
+                        navController.navigate("${Screen.ROOM_SETUP}/${state.userId}") {
+                            popUpTo(Screen.LOGIN) { inclusive = true }
+                        }
+                        Log.d("NavGraph_Debug", "Navigation command executed successfully")
+                    } catch (e: Exception) {
+                        Log.e("NavGraph_Debug", "Navigation failed with exception", e)
                     }
                 }
             }

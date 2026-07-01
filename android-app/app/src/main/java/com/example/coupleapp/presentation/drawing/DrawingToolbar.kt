@@ -6,6 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -111,11 +114,17 @@ fun DrawingToolbar(
                             .background(if (isOnline) Color(0xFF4CAF50) else Color(0xFFF44336))
                     )
 
-                    Button(
+                    IconButton(
                         onClick = onUndoClick,
                         modifier = Modifier.height(40.dp)
                     ) {
-                        Text("U")
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Undo",
+                            modifier = Modifier.background(
+                                Color(0xFF565353)
+                            )
+                        )
                     }
                 }
             }

@@ -1,17 +1,32 @@
 package com.example.coupleapp.presentation.drawing
 
+import android.content.Context
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageBitmapConfig
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.asAndroidBitmap
 import com.example.coupleapp.data.remote.DrawPoint
 import com.example.coupleapp.data.remote.SocketManager
 import com.example.coupleapp.domain.StrokeRepository
+import com.example.coupleapp.presentation.widget.DrawingWidgetProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -124,6 +139,56 @@ class DrawingViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun exportToPng(width: Int, height: Int): ByteArray? {
+        if (width <= 0 || height <= 0) return null
+
+        val bitmap = ImageBitmap(width, height, ImageBitmapConfig.Argb8888)
+        val canvas = Canvas(bitmap)
+
+        val bgPaint = Paint().apply {
+            color = Color.White
+            style = PaintingStyle.Fill
+        }
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+
+        val strokes = _strokes.value
+        for (stroke in strokes) {
+            if (stroke.size <= 1) continue
+
+            val path = Path()
+            path.moveTo(stroke[0].x, stroke[0].y)
+            for (i in 1 until stroke.size) {
+                path.lineTo(stroke[i].x, stroke[i].y)
+            }
+
+            val paint = Paint().apply {
+                color = Color(stroke[0].color)
+                style = PaintingStyle.Stroke
+                strokeWidth = stroke[0].strokeWidth
+                strokeCap = StrokeCap.Round
+                strokeJoin = StrokeJoin.Round
+            }
+            canvas.drawPath(path, paint)
+        }
+
+        val outputStream = ByteArrayOutputStream()
+        bitmap.asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+        return outputStream.toByteArray()
+    }
+
+    fun saveLastDrawing(context: Context): Boolean {
+        val metrics = context.resources.displayMetrics
+        val pngBytes = exportToPng(metrics.widthPixels, metrics.heightPixels)
+
+        return try {
+            val file = File(context.filesDir, DrawingWidgetProvider.LAST_DRAWING_FILE)
+            file.writeBytes(pngBytes!!)
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 

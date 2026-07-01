@@ -1,5 +1,6 @@
 package com.example.coupleapp.presentation.auth
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.coupleapp.domain.AuthRepository
@@ -31,9 +32,13 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             repository.login(email, password).fold(
                 onSuccess = { userId ->
+                    Log.d("AuthVM_Debug", "Login success, userId from repo: $userId")
                     _uiState.update { it.copy(isLoading = false, isSuccess = true, userId = userId) }
+                    Log.d("AuthVM_Debug", "State updated. New state: isSuccess=true, userId=$userId")
+
                 },
                 onFailure = { exception ->
+                    Log.e("AuthVM_Debug", "Login FAILED", exception) // <-- добавь это
                     _uiState.update {
                         it.copy(
                             isLoading = false,
